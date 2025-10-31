@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using TMPro;
 
 public class ZombieWaveSpawner : MonoBehaviour
 {
@@ -25,12 +26,17 @@ public class ZombieWaveSpawner : MonoBehaviour
     [Tooltip("Player reference (auto-assigned if empty).")]
     public Transform player;
 
+    [Header("UI References")]
+    [Tooltip("Assign the WaveUIManager here.")]
+    public WaveUIManager waveUIManager;
+
     private int currentWaveIndex = 0;
     private bool isSpawning = false;
     private int zombiesAlive = 0;
 
     void Start()
     {
+        // Auto-find player if not assigned
         if (player == null)
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -40,12 +46,17 @@ public class ZombieWaveSpawner : MonoBehaviour
                 Debug.LogWarning("[ZombieWaveSpawner] No player found with tag 'Player'!");
         }
 
+        // Initialize wave UI
+        if (waveUIManager != null)
+            waveUIManager.InitializeUI(waves.Length);
+
+        // Start the first wave
         StartCoroutine(StartNextWave());
     }
 
     void Update()
     {
-        // If all zombies are dead and we finished spawning current wave, move to next wave
+        // If all zombies are dead and we finished spawning current wave, move to next
         if (!isSpawning && zombiesAlive == 0 && currentWaveIndex < waves.Length)
         {
             StartCoroutine(StartNextWave());
@@ -57,12 +68,19 @@ public class ZombieWaveSpawner : MonoBehaviour
         if (currentWaveIndex >= waves.Length)
         {
             Debug.Log("[ZombieWaveSpawner] All waves completed!");
+            if (waveUIManager != null)
+                waveUIManager.ShowFinalMessage("All Waves Completed!");
             yield break;
         }
 
         Wave wave = waves[currentWaveIndex];
         isSpawning = true;
+
         Debug.Log($"--- Starting {wave.waveName} ---");
+
+        // Update UI for new wave
+        if (waveUIManager != null)
+            waveUIManager.UpdateWaveText(currentWaveIndex);
 
         for (int i = 0; i < wave.zombieCount; i++)
         {
@@ -104,7 +122,7 @@ public class ZombieWaveSpawner : MonoBehaviour
                 playerField.SetValue(zombieAI, player);
         }
 
-        // Detect when zombie dies to reduce count
+        // Track when zombie dies
         ZombieDeathTracker tracker = newZombie.AddComponent<ZombieDeathTracker>();
         tracker.spawner = this;
     }

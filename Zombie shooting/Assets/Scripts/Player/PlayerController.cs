@@ -9,13 +9,14 @@ public class PlayerController : MonoBehaviour
     public int currentHealth;
 
     [Header("UI")]
-    public Slider healthSlider; // Drag your Health Slider from Canvas here
+    public Slider healthSlider;              // 🔹 Health bar
+    public GameObject damageFlash;           // 🔹 Red flash prefab (GameObject in Canvas)
+    public DeathScreen deathScreen;          // 🔹 Death screen (assign in inspector)
 
     [Header("References")]
     public CharacterController controller;
     [SerializeField] private Transform cameraTarget;
     public Camera playerCamera;
-    public DeathScreen deathScreen; // Drag your DeathScreen UI object here
 
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
@@ -47,12 +48,13 @@ public class PlayerController : MonoBehaviour
     private Vector3 currentRecoil = Vector3.zero;
 
     [Header("Footstep Settings")]
-    public AudioSource footstepSource;                 // Assign in Inspector
-    public AudioClip[] footstepClips;                  // Assign multiple clips in Inspector
-    [SerializeField] private float baseStepSpeed = 0.5f; // Time between steps
+    public AudioSource footstepSource;
+    public AudioClip[] footstepClips;
+    [SerializeField] private float baseStepSpeed = 0.5f;
     private float footstepTimer;
 
-    private bool isDead = false;
+    // 🔹 New for red flash fading
+    private CanvasGroup flashCanvasGroup;
 
     private void Start()
     {
@@ -63,24 +65,28 @@ public class PlayerController : MonoBehaviour
         if (playerCamera != null)
             originalCameraPos = playerCamera.transform.localPosition;
 
-        // 🎚️ Initialize Health UI
         if (healthSlider != null)
         {
             healthSlider.maxValue = maxHealth;
             healthSlider.value = currentHealth;
         }
+
+        // 🔹 Setup flash prefab
+        if (damageFlash != null)
+        {
+            damageFlash.SetActive(false);
+            flashCanvasGroup = damageFlash.GetComponent<CanvasGroup>();
+        }
     }
 
     private void Update()
     {
-        if (isDead) return;
-
         InputManagement();
         Movement();
         Turn();
         HandleFootsteps();
 
-        // Smooth health bar update
+        // Smooth health bar transition
         if (healthSlider != null)
         {
             healthSlider.value = Mathf.Lerp(healthSlider.value, currentHealth, Time.deltaTime * 10f);
@@ -99,6 +105,7 @@ public class PlayerController : MonoBehaviour
         CameraBob(move.magnitude);
     }
 
+    // --- THIS IS THE UPDATED METHOD ---
     private void Turn()
     {
         float mouseXDelta = mouseX * mouseSensitivity * Time.deltaTime;
@@ -109,15 +116,19 @@ public class PlayerController : MonoBehaviour
 
         if (cameraTarget != null)
         {
+            // We set the camera's local yaw (Y-axis) to 0.
+            // This stops it from fighting with the player body's rotation.
             cameraTarget.localRotation = Quaternion.Slerp(
                 cameraTarget.localRotation,
-                Quaternion.Euler(xRotation + currentRecoil.y, currentRecoil.x, 0),
+                Quaternion.Euler(xRotation + currentRecoil.y, 0, 0),
                 Time.deltaTime * rotSpeed
             );
         }
 
+        // The player body handles ALL left/right rotation
         transform.Rotate(Vector3.up * mouseXDelta);
     }
+    // --- END OF UPDATED METHOD ---
 
     private float VerticalForceCalculation()
     {
@@ -182,7 +193,7 @@ public class PlayerController : MonoBehaviour
         {
             AudioClip clip = footstepClips[Random.Range(0, footstepClips.Length)];
             footstepSource.PlayOneShot(clip);
-            footstepTimer = baseStepSpeed; // reset timer
+            footstepTimer = baseStepSpeed;
         }
     }
 
@@ -207,8 +218,6 @@ public class PlayerController : MonoBehaviour
 
     public void TakeDamage(int damageAmount)
     {
-        if (isDead) return;
-
         currentHealth -= damageAmount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
@@ -217,25 +226,44 @@ public class PlayerController : MonoBehaviour
         if (healthSlider != null)
             healthSlider.value = currentHealth;
 
-        // Camera shake feedback when hit
+        // 🔹 Flash and shake when hit
+        StartCoroutine(DamageFlashEffect());
         ShakeCamera();
 
         if (currentHealth <= 0)
             Die();
     }
 
-    private void Die()
+    private IEnumerator DamageFlashEffect()
     {
-        if (isDead) return;
-        isDead = true;
+        if (damageFlash == null) yield break;
 
-        Debug.Log("☠️ Player is dead!");
-        if (deathScreen != null)
-            deathScreen.showDeadScreen = true;
+        damageFlash.SetActive(true);
 
-        // Disable player control
-        controller.enabled = false;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (flashCanvasGroup != null)
+        {
+            flashCanvasGroup.alpha = 1f;
+            float fadeTime = 0.3f;
+            float elapsed = 0f;
+            while (elapsed < fadeTime)
+            {
+                elapsed += Time.deltaTime;
+                flashCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
+                yield return null;
+            }
+            flashCanvasGroup.alpha = 0f;
+            damageFlash.SetActive(false);
+        }
+        else
+        {
+            yield return new WaitForSeconds(0.15f);
+            damageFlash.SetActive(false);
+        }
+    }
+
+    void Die()
+    {
+        deathScreen.showDeadScreen = true;
+        Debug.Log("Player is dead!");
     }
 }

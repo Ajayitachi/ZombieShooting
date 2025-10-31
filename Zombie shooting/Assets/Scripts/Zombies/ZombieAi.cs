@@ -2,14 +2,15 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(CapsuleCollider), typeof(NavMeshAgent))]
+// --- ANIMATION --- Added Animator to the RequireComponent list
+[RequireComponent(typeof(CapsuleCollider), typeof(NavMeshAgent), typeof(Animator))]
 public class ZombieAI : MonoBehaviour
 {
     [Header("AI References")]
     [SerializeField] private Transform playerTarget;
     private PlayerController playerController;
     private NavMeshAgent agent;
-    private Animator animator;
+    private Animator animator; // Already defined, which is perfect
 
     [Header("AI Settings")]
     public float detectionRange = 20f;
@@ -32,22 +33,30 @@ public class ZombieAI : MonoBehaviour
     {
         // Cache components
         agent = GetComponent<NavMeshAgent>();
-        animator = GetComponent<Animator>();
+        animator = GetComponent<Animator>(); // Already here, great!
         rb = GetComponent<Rigidbody>();
 
         // Set health
         currentHealth = maxHealth;
 
-        // Auto find player
+        // --- MODIFIED SECTION START ---
         if (playerTarget == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null)
             {
                 playerTarget = playerObj.transform;
-                playerController = playerObj.GetComponent<PlayerController>();
             }
         }
+        if (playerTarget != null)
+        {
+            playerController = playerTarget.GetComponent<PlayerController>();
+        }
+        if (playerController == null)
+        {
+            Debug.LogError($"{gameObject.name} could not find the PlayerController!");
+        }
+        // --- MODIFIED SECTION END ---
     }
 
     private void Update()
@@ -55,25 +64,35 @@ public class ZombieAI : MonoBehaviour
         if (isDead) return;
         if (playerTarget == null) return;
 
+        // --- ANIMATION ---
+        // This block reads the agent's current speed and sends it to the "Speed"
+        // parameter in your Blend Tree. This handles both walking and idling.
+        float speed = agent.velocity.magnitude;
+        float normalizedSpeed = speed / agent.speed; // Converts to a 0-1 value
+        animator.SetFloat("Speed", normalizedSpeed);
+        // --- END ANIMATION ---
+
         float distance = Vector3.Distance(transform.position, playerTarget.position);
 
+        // --- I re-ordered these checks for cleaner logic ---
+
+        // Attack player
+        if (distance <= attackRange && canAttack)
+        {
+            agent.isStopped = true;
+            StartCoroutine(AttackPlayer());
+        }
         // Chase player
-        if (distance <= detectionRange && distance > attackRange)
+        else if (distance <= detectionRange && distance > attackRange)
         {
             agent.isStopped = false;
             agent.SetDestination(playerTarget.position);
-            if (animator) animator.SetBool("isWalking", true);
         }
-        // Attack player
-        else if (distance <= attackRange && canAttack)
+        // Player is out of range, stop. (Your 'else' was empty, I filled it)
+        else if (distance > detectionRange)
         {
             agent.isStopped = true;
-            if (animator) animator.SetBool("isWalking", false);
-            StartCoroutine(AttackPlayer());
-        }
-        else
-        {
-            if (animator) animator.SetBool("isWalking", false);
+            // The animator.SetFloat("Speed") above will handle returning to Idle
         }
     }
 
@@ -81,18 +100,29 @@ public class ZombieAI : MonoBehaviour
     {
         canAttack = false;
 
-        // Attack animation
-        if (animator) animator.SetTrigger("Attack");
+        // --- ANIMATION ---
+        // Trigger the attack animation
+        animator.SetTrigger("Attack");
+        // --- END ANIMATION ---
+
+        // Make the zombie look at the player when attacking
+        transform.LookAt(playerTarget.position);
 
         yield return new WaitForSeconds(0.5f); // small attack delay for realism
 
         if (playerController != null && !isDead)
         {
-            playerController.TakeDamage(attackDamage);
-            Debug.Log($"{gameObject.name} attacked player for {attackDamage} damage");
+            // Re-check distance in case player moved out of range during the 0.5s wind-up
+            float distance = Vector3.Distance(transform.position, playerTarget.position);
+            if (distance <= attackRange)
+            {
+                playerController.TakeDamage(attackDamage);
+                Debug.Log($"{gameObject.name} attacked player for {attackDamage} damage");
+            }
         }
 
-        yield return new WaitForSeconds(attackCooldown);
+        // Wait for the full cooldown (minus the wind-up time)
+        yield return new WaitForSeconds(attackCooldown - 0.5f);
         canAttack = true;
     }
 
@@ -112,15 +142,19 @@ public class ZombieAI : MonoBehaviour
     private IEnumerator Die()
     {
         isDead = true;
-        if (animator) animator.SetTrigger("Die");
+
+        // --- ANIMATION ---
+        // Trigger the death animation
+        animator.SetTrigger("Die");
+        // --- END ANIMATION ---
 
         agent.isStopped = true;
+        agent.enabled = false; // Disable NavMeshAgent completely
 
         // Disable collider & stop movement
         CapsuleCollider col = GetComponent<CapsuleCollider>();
         if (col) col.enabled = false;
 
-        // Optional: disable rigidbody physics
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;

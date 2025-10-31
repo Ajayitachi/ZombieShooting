@@ -62,9 +62,6 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e6241bbd80e0da8478fe31abddbc3ddc, type: 3}
       insertIndex: 1
-      addedObject: {fileID: 2669946186018328096}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e6241bbd80e0da8478fe31abddbc3ddc, type: 3}
-      insertIndex: 2
       addedObject: {fileID: 7471922749668060456}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e6241bbd80e0da8478fe31abddbc3ddc, type: 3}
       insertIndex: -1
@@ -75,30 +72,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e6241bbd80e0da8478fe31abddbc3ddc, type: 3}
   m_PrefabInstance: {fileID: 2588073639973965185}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2669946186018328096
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3399028676551930064}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4cbe8d0c61d3e324b8c5ab89f4b83704, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerTarget: {fileID: 0}
-  agent: {fileID: 7471922749668060456}
-  animator: {fileID: 8250659296471412752}
-  chaseRadius: 15
-  attackRadius: 2.5
-  health: 100
-  damage: 10
-  attackCooldown: 2
-  attackDamageDelay: 0.8
-  destroyDelay: 5
-  bloodScreenEffect: {fileID: 1493171044369405946, guid: a4e9d5783f2eb784196757731f182370, type: 3}
-  bloodImpactEffect: {fileID: 0}
 --- !u!195 &7471922749668060456
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -144,8 +117,3 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!95 &8250659296471412752 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: e6241bbd80e0da8478fe31abddbc3ddc, type: 3}
-  m_PrefabInstance: {fileID: 2588073639973965185}
-  m_PrefabAsset: {fileID: 0}
