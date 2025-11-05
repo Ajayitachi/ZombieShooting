@@ -61,8 +61,18 @@ public class PauseManager : MonoBehaviour
 
     public void QuitGame()
     {
-        // You can load a main menu scene or quit the game
         Debug.Log("Quit Game pressed!");
-        SceneManager.LoadScene("MainMenu"); // or Application.Quit();
+
+        // 🔹 1. RESET TIME
+        // You MUST do this, or the Main Menu will be frozen
+        Time.timeScale = 1f;
+
+        // 🔹 2. ENSURE CURSOR IS VISIBLE FOR THE MENU
+        // It's good practice to set this explicitly for the menu scene
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // 🔹 3. NOW LOAD THE SCENE
+        SceneManager.LoadScene("MainMenu");
     }
 }
