@@ -9,43 +9,33 @@ public class PlayerController : MonoBehaviour
     public int currentHealth;
 
     [Header("UI")]
-    public Slider healthSlider;              // 🔹 Health bar
-    public GameObject damageFlash;           // 🔹 Red flash prefab (GameObject in Canvas)
-    public DeathScreen deathScreen;          // 🔹 Death screen (assign in inspector)
+    public Slider healthSlider;              // Health bar UI
+    public GameObject damageFlash;           // Red flash overlay
+    public DeathScreen deathScreen;          // Death screen UI (assign in Inspector)
 
     [Header("References")]
-    public CharacterController controller;
-    [SerializeField] private Transform cameraTarget;
-    public Camera playerCamera;
+    public CharacterController controller;   // CharacterController component
+    public Camera playerCamera;              // Player camera reference
 
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float gravity = 9.81f;
     [SerializeField] private float jumpHeight = 2f;
-    [SerializeField] private float rotSpeed = 50f;
 
     private float verticalVelocity;
-    private float xRotation;
 
     [Header("Camera Bob")]
     [SerializeField] private float bobFrequency = 2f;
     [SerializeField] private float bobAmplitude = 0.05f;
+    private Vector3 originalCameraPos;
 
     [Header("Camera Shake")]
     [SerializeField] private float shakeDuration = 0.2f;
     [SerializeField] private float shakeMagnitude = 0.1f;
-    private Vector3 originalCameraPos;
 
-    [Header("Input")]
-    [SerializeField] private float mouseSensitivity = 100f;
+    [Header("Movement Input")]
     private float moveInput;
-    private float turnInput;
-    private float mouseX;
-    private float mouseY;
-
-    [Header("Recoil")]
-    private Vector3 targetRecoil = Vector3.zero;
-    private Vector3 currentRecoil = Vector3.zero;
+    private float strafeInput;
 
     [Header("Footstep Settings")]
     public AudioSource footstepSource;
@@ -53,7 +43,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float baseStepSpeed = 0.5f;
     private float footstepTimer;
 
-    // 🔹 New for red flash fading
     private CanvasGroup flashCanvasGroup;
 
     private void Start()
@@ -71,7 +60,7 @@ public class PlayerController : MonoBehaviour
             healthSlider.value = currentHealth;
         }
 
-        // 🔹 Setup flash prefab
+        // Damage flash setup
         if (damageFlash != null)
         {
             damageFlash.SetActive(false);
@@ -81,60 +70,47 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        InputManagement();
-        Movement();
-        Turn();
+        HandleInput();
+        MovePlayer();
         HandleFootsteps();
 
-        // Smooth health bar transition
+        // Smooth health bar update
         if (healthSlider != null)
         {
             healthSlider.value = Mathf.Lerp(healthSlider.value, currentHealth, Time.deltaTime * 10f);
         }
     }
 
-    private void Movement()
+    // ------------------------------
+    // 🔹 INPUT HANDLER
+    // ------------------------------
+    private void HandleInput()
     {
-        Vector3 move = new Vector3(turnInput, 0, moveInput);
-        if (move.magnitude > 1f) move.Normalize();
-        move = transform.TransformDirection(move) * moveSpeed;
+        moveInput = Input.GetAxis("Vertical");
+        strafeInput = Input.GetAxis("Horizontal");
+    }
 
-        move.y = VerticalForceCalculation();
+    // ------------------------------
+    // 🔹 MOVEMENT HANDLER
+    // ------------------------------
+    private void MovePlayer()
+    {
+        Vector3 move = new Vector3(strafeInput, 0, moveInput);
+        if (move.magnitude > 1f) move.Normalize();
+
+        // Convert to world space and move
+        move = transform.TransformDirection(move) * moveSpeed;
+        move.y = CalculateVerticalForce();
         controller.Move(move * Time.deltaTime);
 
         CameraBob(move.magnitude);
     }
 
-    // --- THIS IS THE UPDATED METHOD ---
-    private void Turn()
-    {
-        float mouseXDelta = mouseX * mouseSensitivity * Time.deltaTime;
-        float mouseYDelta = mouseY * mouseSensitivity * Time.deltaTime;
-
-        xRotation -= mouseYDelta;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
-
-        if (cameraTarget != null)
-        {
-            // We set the camera's local yaw (Y-axis) to 0.
-            // This stops it from fighting with the player body's rotation.
-            cameraTarget.localRotation = Quaternion.Slerp(
-                cameraTarget.localRotation,
-                Quaternion.Euler(xRotation + currentRecoil.y, 0, 0),
-                Time.deltaTime * rotSpeed
-            );
-        }
-
-        // The player body handles ALL left/right rotation
-        transform.Rotate(Vector3.up * mouseXDelta);
-    }
-    // --- END OF UPDATED METHOD ---
-
-    private float VerticalForceCalculation()
+    private float CalculateVerticalForce()
     {
         if (controller.isGrounded)
         {
-            verticalVelocity = -2f;
+            verticalVelocity = -2f; // keep grounded
             if (Input.GetButtonDown("Jump"))
                 verticalVelocity = Mathf.Sqrt(jumpHeight * 2f * gravity);
         }
@@ -142,34 +118,17 @@ public class PlayerController : MonoBehaviour
         {
             verticalVelocity -= gravity * Time.deltaTime;
         }
+
         return verticalVelocity;
     }
 
-    private void InputManagement()
-    {
-        moveInput = Input.GetAxis("Vertical");
-        turnInput = Input.GetAxis("Horizontal");
-        mouseX = Input.GetAxis("Mouse X");
-        mouseY = Input.GetAxis("Mouse Y");
-    }
-
-    public void ApplyAimRecoil(GunData gunData)
-    {
-        float recoilX = Random.Range(-gunData.a_maxRecoil.x, gunData.a_maxRecoil.x) * gunData.a_recoilAmount;
-        float recoilY = Random.Range(-gunData.a_maxRecoil.y, gunData.a_maxRecoil.y) * gunData.a_recoilAmount;
-        targetRecoil += new Vector3(recoilX, recoilY, 0);
-        currentRecoil = Vector3.MoveTowards(currentRecoil, targetRecoil, Time.deltaTime * gunData.a_recoilSpeed);
-    }
-
-    public void ResetAimRecoil(GunData gunData)
-    {
-        currentRecoil = Vector3.Lerp(currentRecoil, Vector3.zero, Time.deltaTime * gunData.a_resetRecoilSpeed);
-        targetRecoil = Vector3.Lerp(targetRecoil, Vector3.zero, Time.deltaTime * gunData.a_resetRecoilSpeed);
-    }
-
+    // ------------------------------
+    // 🔹 CAMERA BOB
+    // ------------------------------
     private void CameraBob(float speed)
     {
         if (playerCamera == null) return;
+
         if (speed > 0.1f)
         {
             float bobOffset = Mathf.Sin(Time.time * bobFrequency) * bobAmplitude;
@@ -181,10 +140,13 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // ------------------------------
+    // 🔹 FOOTSTEPS
+    // ------------------------------
     private void HandleFootsteps()
     {
         if (!controller.isGrounded) return;
-        if (moveInput == 0 && turnInput == 0) return;
+        if (moveInput == 0 && strafeInput == 0) return;
         if (footstepSource == null || footstepClips.Length == 0) return;
 
         footstepTimer -= Time.deltaTime;
@@ -197,6 +159,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // ------------------------------
+    // 🔹 CAMERA SHAKE
+    // ------------------------------
     public void ShakeCamera()
     {
         if (playerCamera != null) StartCoroutine(DoCameraShake());
@@ -216,6 +181,9 @@ public class PlayerController : MonoBehaviour
         playerCamera.transform.localPosition = originalCameraPos;
     }
 
+    // ------------------------------
+    // 🔹 DAMAGE HANDLER
+    // ------------------------------
     public void TakeDamage(int damageAmount)
     {
         currentHealth -= damageAmount;
@@ -226,7 +194,6 @@ public class PlayerController : MonoBehaviour
         if (healthSlider != null)
             healthSlider.value = currentHealth;
 
-        // 🔹 Flash and shake when hit
         StartCoroutine(DamageFlashEffect());
         ShakeCamera();
 
@@ -261,9 +228,14 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // ------------------------------
+    // 🔹 DEATH HANDLER
+    // ------------------------------
     void Die()
     {
-        deathScreen.showDeadScreen = true;
-        Debug.Log("Player is dead!");
+        if (deathScreen != null)
+            deathScreen.showDeadScreen = true;
+
+        Debug.Log("💀 Player is dead!");
     }
 }

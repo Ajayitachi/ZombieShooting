@@ -16355,7 +16355,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 404014, guid: 5cd829d670d42cf458be57a99ad05bf4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -9.37
+      value: -9.32
       objectReference: {fileID: 0}
     - target: {fileID: 404014, guid: 5cd829d670d42cf458be57a99ad05bf4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -16363,7 +16363,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 404014, guid: 5cd829d670d42cf458be57a99ad05bf4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 45.406
+      value: 46.34
       objectReference: {fileID: 0}
     - target: {fileID: 404014, guid: 5cd829d670d42cf458be57a99ad05bf4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -19087,7 +19087,7 @@ MonoBehaviour:
   - waveName: Easy
     zombieCount: 20
     spawnInterval: 1
-  timeBetweenWaves: 5
+  timeBetweenWaves: 2
   zombiePrefabs:
   - {fileID: 5012748250442316660, guid: 1d89a181d80d70d47b90956e3cedb015, type: 3}
   - {fileID: 1714162393}
@@ -19286,11 +19286,11 @@ Transform:
   m_GameObject: {fileID: 1067667630}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.792, y: 5.962, z: 40.01}
+  m_LocalPosition: {x: 0, y: 0.6999998, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1231192437}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1067667635
 MonoBehaviour:
@@ -22086,17 +22086,14 @@ MonoBehaviour:
   damageFlash: {fileID: 0}
   deathScreen: {fileID: 458835101}
   controller: {fileID: 1202016393}
-  cameraTarget: {fileID: 1202016395}
   playerCamera: {fileID: 1067667633}
   moveSpeed: 5
   gravity: 9.81
   jumpHeight: 1
-  rotSpeed: 50
   bobFrequency: 2
   bobAmplitude: 0.05
   shakeDuration: 0.2
   shakeMagnitude: 0.1
-  mouseSensitivity: 100
   footstepSource: {fileID: 0}
   footstepClips: []
   baseStepSpeed: 0.5
@@ -22114,6 +22111,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2006968381}
+  - {fileID: 1231192437}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!82 &1202016396
@@ -22942,6 +22940,53 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1507636620937791777, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
   m_PrefabInstance: {fileID: 1229970406}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1231192436
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1231192437}
+  - component: {fileID: 1231192438}
+  m_Layer: 0
+  m_Name: CameraHolder
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1231192437
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231192436}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1067667634}
+  m_Father: {fileID: 1202016395}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1231192438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231192436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7437f0e81ff7d1143a378b672e2c1cf9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MouseLook
+  mouseSensitivity: 100
+  playerBody: {fileID: 1202016395}
 --- !u!1 &1236036902
 GameObject:
   m_ObjectHideFlags: 0
@@ -39576,7 +39621,6 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 593129014}
-  - {fileID: 1067667634}
   - {fileID: 669881802}
   - {fileID: 267862130}
   - {fileID: 1386573992}
