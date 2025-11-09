@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class ZombieDeathTracker : MonoBehaviour
 {
-  
     public ZombieWaveSpawner spawner;
     private ZombieAI zombieAI;
 
@@ -11,16 +10,13 @@ public class ZombieDeathTracker : MonoBehaviour
         zombieAI = GetComponent<ZombieAI>();
     }
 
-    void Update()
+    // This gets called automatically when the GameObject is disabled
+    void OnDisable()
     {
-        // Check if zombie destroyed or marked dead
-        if (zombieAI == null)
+        // If this happens because the zombie died, count it as death
+        if (spawner != null && zombieAI != null)
         {
-            if (spawner != null)
-                spawner.OnZombieDeath();
-
-            Destroy(this);
+            spawner.OnZombieDeath();
         }
     }
 }
-

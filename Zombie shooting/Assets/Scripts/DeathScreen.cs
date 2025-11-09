@@ -9,6 +9,10 @@ public class DeathScreen : MonoBehaviour
     public Text targetText;
     public GameObject buttonPanel; // Parent object that contains Replay/MainMenu buttons
 
+    [Header("External References")]
+    public GameObject waveCountUI;        // 👈 Assign "Wave Count" GameObject
+    public GameObject statusWaveCountUI;  // 👈 Assign "Status Wave count" GameObject
+
     [Header("Settings")]
     public float duration = 4f;
     public bool showDeadScreen = false;
@@ -31,27 +35,29 @@ public class DeathScreen : MonoBehaviour
     {
         if (showDeadScreen)
         {
-            // --- This part is the same ---
-            // Fade effect
+            // Disable wave UI only once when death starts
+            if (waveCountUI != null && waveCountUI.activeSelf)
+                waveCountUI.SetActive(false);
+
+            if (statusWaveCountUI != null && statusWaveCountUI.activeSelf)
+                statusWaveCountUI.SetActive(false);
+
+            // --- Fade effect ---
             if (elapsedTime < duration)
             {
                 float newAlpha = Mathf.Lerp(startAlpha, targetAlpha, elapsedTime / duration);
                 SetUIAlpha(newAlpha);
                 elapsedTime += Time.deltaTime;
             }
-            // --- This is the MODIFIED block ---
             else if (!fadeComplete)
             {
                 fadeComplete = true;
 
-                // Time.timeScale = 0f; // <-- MODIFICATION: Removed this line. It was freezing your buttons.
-
-                // MODIFICATION: Added these two lines to unlock and show your mouse
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
 
                 if (buttonPanel != null)
-                    buttonPanel.SetActive(true); // Show replay/main menu buttons
+                    buttonPanel.SetActive(true);
             }
         }
     }
@@ -72,15 +78,15 @@ public class DeathScreen : MonoBehaviour
     // --- Button Methods ---
     public void ReplayLevel()
     {
-        Time.timeScale = 1f; // Resume time (good to keep this here just in case)
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void GoToMainMenu()
     {
-        Time.timeScale = 1f; // Resume time
-        Cursor.lockState = CursorLockMode.None; // Ensure cursor is still free for main menu
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        SceneManager.LoadScene("MainMenu"); // Make sure this scene is added to Build Settings
+        SceneManager.LoadScene("MainMenu");
     }
 }

@@ -17,22 +17,23 @@ public class ZombieWaveSpawner : MonoBehaviour
     public float timeBetweenWaves = 5f;
 
     [Header("References")]
-    [Tooltip("Zombie prefabs to spawn.")]
     public GameObject[] zombiePrefabs;
-
-    [Tooltip("Spawn points in the scene.")]
     public Transform[] spawnPoints;
-
-    [Tooltip("Player reference (auto-assigned if empty).")]
     public Transform player;
 
     [Header("UI References")]
-    [Tooltip("Assign the WaveUIManager here.")]
     public WaveUIManager waveUIManager;
+    public GameObject waveCountUI;
+    public GameObject statusWaveCountUI;
+
+    [Header("Mission Complete UI")]
+    [Tooltip("Assign the GameObject that has the MissionCompleteUI script.")]
+    public GameObject missionCompleteScreen;
 
     private int currentWaveIndex = 0;
     private bool isSpawning = false;
     private int zombiesAlive = 0;
+    private bool missionCompleteTriggered = false;
 
     void Start()
     {
@@ -50,13 +51,21 @@ public class ZombieWaveSpawner : MonoBehaviour
         if (waveUIManager != null)
             waveUIManager.InitializeUI(waves.Length);
 
-        // Start the first wave
+        // Start first wave
         StartCoroutine(StartNextWave());
     }
 
     void Update()
     {
-        // If all zombies are dead and we finished spawning current wave, move to next
+        // ? If all waves are complete and no zombies remain
+        if (!isSpawning && zombiesAlive == 0 && currentWaveIndex >= waves.Length && !missionCompleteTriggered)
+        {
+            missionCompleteTriggered = true;
+            Debug.Log("[ZombieWaveSpawner] All waves completed! Showing Mission Complete.");
+            ShowMissionComplete();
+        }
+
+        // ? Continue spawning next wave if available
         if (!isSpawning && zombiesAlive == 0 && currentWaveIndex < waves.Length)
         {
             StartCoroutine(StartNextWave());
@@ -66,19 +75,13 @@ public class ZombieWaveSpawner : MonoBehaviour
     private IEnumerator StartNextWave()
     {
         if (currentWaveIndex >= waves.Length)
-        {
-            Debug.Log("[ZombieWaveSpawner] All waves completed!");
-            if (waveUIManager != null)
-                waveUIManager.ShowFinalMessage("All Waves Completed!");
             yield break;
-        }
 
         Wave wave = waves[currentWaveIndex];
         isSpawning = true;
 
-        Debug.Log($"--- Starting {wave.waveName} ---");
+        Debug.Log($"--- Starting {wave.waveName} ({currentWaveIndex + 1}/{waves.Length}) ---");
 
-        // Update UI for new wave
         if (waveUIManager != null)
             waveUIManager.UpdateWaveText(currentWaveIndex);
 
@@ -91,6 +94,7 @@ public class ZombieWaveSpawner : MonoBehaviour
         isSpawning = false;
         currentWaveIndex++;
 
+        // Wait before next wave (if not the last)
         if (currentWaveIndex < waves.Length)
         {
             Debug.Log($"Wave {wave.waveName} completed! Next wave in {timeBetweenWaves} seconds...");
@@ -112,7 +116,7 @@ public class ZombieWaveSpawner : MonoBehaviour
         GameObject newZombie = Instantiate(zombiePrefab, spawnPoint.position, spawnPoint.rotation);
         zombiesAlive++;
 
-        // Link player reference to the zombie
+        // Assign player to zombie AI if available
         ZombieAI zombieAI = newZombie.GetComponent<ZombieAI>();
         if (zombieAI != null && player != null)
         {
@@ -122,7 +126,7 @@ public class ZombieWaveSpawner : MonoBehaviour
                 playerField.SetValue(zombieAI, player);
         }
 
-        // Track when zombie dies
+        // Track zombie death
         ZombieDeathTracker tracker = newZombie.AddComponent<ZombieDeathTracker>();
         tracker.spawner = this;
     }
@@ -131,5 +135,47 @@ public class ZombieWaveSpawner : MonoBehaviour
     {
         zombiesAlive--;
         if (zombiesAlive < 0) zombiesAlive = 0;
+        Debug.Log($"Zombie died. Remaining: {zombiesAlive}");
+
+        // ? If all waves are done and all zombies are dead
+        if (!isSpawning && zombiesAlive == 0 && currentWaveIndex >= waves.Length && !missionCompleteTriggered)
+        {
+            missionCompleteTriggered = true;
+            Debug.Log("[ZombieWaveSpawner] All zombies cleared. Mission complete!");
+            ShowMissionComplete();
+        }
+    }
+
+    private void ShowMissionComplete()
+    {
+        Debug.Log("[ZombieWaveSpawner] ShowMissionComplete() called!");
+
+        // Disable wave UI
+        if (waveCountUI != null)
+            waveCountUI.SetActive(false);
+
+        if (statusWaveCountUI != null)
+            statusWaveCountUI.SetActive(false);
+
+        // ? Pause the game
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // ? Show the Mission Complete UI
+        if (missionCompleteScreen != null)
+        {
+            MissionCompleteUI ui = missionCompleteScreen.GetComponent<MissionCompleteUI>();
+            if (ui != null)
+                ui.ShowMissionComplete();
+            else
+                missionCompleteScreen.SetActive(true);
+
+            Debug.Log("Mission Complete Screen activated and game paused!");
+        }
+        else
+        {
+            Debug.LogError("Mission Complete Screen reference is NULL! Please assign it in the Inspector.");
+        }
     }
 }
