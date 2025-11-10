@@ -43,6 +43,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float baseStepSpeed = 0.5f;
     private float footstepTimer;
 
+    [Header("Damage Sound Settings")]
+    public AudioSource damageAudioSource;   // 🔊 Source for damage sounds
+    public AudioClip damageSound;           // 👈 Assign hurt/grunt sound in Inspector
+
     private CanvasGroup flashCanvasGroup;
 
     private void Start()
@@ -190,6 +194,12 @@ public class PlayerController : MonoBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
         Debug.Log($"💥 Player took {damageAmount} damage! Health = {currentHealth}");
+
+        // 🎧 Play player damage sound
+        if (damageAudioSource != null && damageSound != null)
+        {
+            damageAudioSource.PlayOneShot(damageSound);
+        }
 
         if (healthSlider != null)
             healthSlider.value = currentHealth;

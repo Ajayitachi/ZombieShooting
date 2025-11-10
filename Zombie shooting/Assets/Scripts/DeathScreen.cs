@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class DeathScreen : MonoBehaviour
 {
@@ -21,6 +22,8 @@ public class DeathScreen : MonoBehaviour
     private float startAlpha;
     private float elapsedTime = 0f;
     private bool fadeComplete = false;
+    private bool gamePaused = false;
+    private bool isFadingAudio = false;
 
     void Start()
     {
@@ -35,19 +38,30 @@ public class DeathScreen : MonoBehaviour
     {
         if (showDeadScreen)
         {
-            // Disable wave UI only once when death starts
+            // 🧠 Pause game time once
+            if (!gamePaused)
+            {
+                Time.timeScale = 0f; // ⏸️ Pause game physics/movement
+                gamePaused = true;
+
+                // 🧩 Start smooth audio fade-out
+                if (!isFadingAudio)
+                    StartCoroutine(FadeOutAllAudio(1.5f)); // fade out over 1.5 seconds
+            }
+
+            // Disable wave UI once
             if (waveCountUI != null && waveCountUI.activeSelf)
                 waveCountUI.SetActive(false);
 
             if (statusWaveCountUI != null && statusWaveCountUI.activeSelf)
                 statusWaveCountUI.SetActive(false);
 
-            // --- Fade effect ---
+            // --- Fade effect (still runs while game is paused) ---
             if (elapsedTime < duration)
             {
                 float newAlpha = Mathf.Lerp(startAlpha, targetAlpha, elapsedTime / duration);
                 SetUIAlpha(newAlpha);
-                elapsedTime += Time.deltaTime;
+                elapsedTime += Time.unscaledDeltaTime; // ⚡ Use unscaled time so fade continues while paused
             }
             else if (!fadeComplete)
             {
@@ -65,25 +79,58 @@ public class DeathScreen : MonoBehaviour
     void SetUIAlpha(float alpha)
     {
         // Fade image
-        Color imgColor = targetImage.color;
-        imgColor.a = alpha;
-        targetImage.color = imgColor;
+        if (targetImage != null)
+        {
+            Color imgColor = targetImage.color;
+            imgColor.a = alpha;
+            targetImage.color = imgColor;
+        }
 
         // Fade text
-        Color txtColor = targetText.color;
-        txtColor.a = alpha;
-        targetText.color = txtColor;
+        if (targetText != null)
+        {
+            Color txtColor = targetText.color;
+            txtColor.a = alpha;
+            targetText.color = txtColor;
+        }
+    }
+
+    // 🧩 Smoothly fade out all audio (using unscaled time)
+    IEnumerator FadeOutAllAudio(float duration)
+    {
+        isFadingAudio = true;
+
+        float startVolume = AudioListener.volume;
+
+        while (AudioListener.volume > 0f)
+        {
+            AudioListener.volume -= startVolume * (Time.unscaledDeltaTime / duration);
+            yield return null;
+        }
+
+        AudioListener.volume = 0f;
+        AudioListener.pause = true;
+        isFadingAudio = false;
+    }
+
+    // 🧩 Restore audio when restarting or returning to menu
+    private void RestoreAudio()
+    {
+        AudioListener.pause = false;
+        AudioListener.volume = 1f;
     }
 
     // --- Button Methods ---
     public void ReplayLevel()
     {
+        RestoreAudio();
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void GoToMainMenu()
     {
+        RestoreAudio();
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
