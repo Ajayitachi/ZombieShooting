@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e966d78d4b7a0aa4f95304c5fe9fcc62, type: 3}
+  m_Name: UISkin
+  m_EditorClassIdentifier: Assembly-CSharp::UISkin
+  titleFont: {fileID: 11400000, guid: debe894442e153d479c7f9d07cce1276, type: 2}
+  bodyFont: {fileID: 11400000, guid: 9d24e6b3ecd1d2b479a31d3d0e7b1f9e, type: 2}
+  buttonFrame: {fileID: 21300000, guid: a8292d7c3170a7348accf3d85c0e7359, type: 3}
+  buttonFrameHover: {fileID: 21300000, guid: a4fde6e0b21dc224d813ee493157874f, type: 3}
+  panelFrame: {fileID: 21300000, guid: 14a2623c163a4db4ca70b646716ff6f7, type: 3}
+  divider: {fileID: 21300000, guid: 16e92559e30fb6544ac8938aa389dd05, type: 3}
+  cornerDetail: {fileID: 21300000, guid: 2f7ad163b654bf74085060307e13db4a, type: 3}
+  menuBackground: {fileID: 2800000, guid: c4026c3815770d94ba37c1559f5e91ac, type: 3}
+  hoverSound: {fileID: 8300000, guid: 1e7a587164fcbef45b40536469e6c432, type: 3}
+  clickSound: {fileID: 8300000, guid: 35e0c0179d051e04f84ac3e04b705b65, type: 3}
+  menuMusic: {fileID: 8300000, guid: 5ae5b4f05aaedda4bb073e24ee777fb3, type: 3}

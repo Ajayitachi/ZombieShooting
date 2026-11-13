@@ -11,127 +11,108 @@ public class DeathScreen : MonoBehaviour
     public GameObject buttonPanel; // Parent object that contains Replay/MainMenu buttons
 
     [Header("External References")]
-    public GameObject waveCountUI;        // 👈 Assign "Wave Count" GameObject
-    public GameObject statusWaveCountUI;  // 👈 Assign "Status Wave count" GameObject
+    public GameObject waveCountUI;
+    public GameObject statusWaveCountUI;
 
     [Header("Settings")]
     public float duration = 4f;
     public bool showDeadScreen = false;
+    [Tooltip("Append wave / kills / score to the death text.")]
+    public bool showStats = true;
 
     private float targetAlpha = 1f;
     private float startAlpha;
-    private float elapsedTime = 0f;
-    private bool fadeComplete = false;
-    private bool gamePaused = false;
-    private bool isFadingAudio = false;
+    private bool shown;
 
-    void Start()
+    private void Start()
     {
-        startAlpha = targetImage.color.a;
-
-        // Ensure buttons are hidden at start
-        if (buttonPanel != null)
-            buttonPanel.SetActive(false);
+        startAlpha = targetImage != null ? targetImage.color.a : 0f;
+        if (buttonPanel != null) buttonPanel.SetActive(false);
     }
 
-    void Update()
+    private void Update()
     {
-        if (showDeadScreen)
-        {
-            // 🧠 Pause game time once
-            if (!gamePaused)
-            {
-                Time.timeScale = 0f; // ⏸️ Pause game physics/movement
-                gamePaused = true;
-
-                // 🧩 Start smooth audio fade-out
-                if (!isFadingAudio)
-                    StartCoroutine(FadeOutAllAudio(1.5f)); // fade out over 1.5 seconds
-            }
-
-            // Disable wave UI once
-            if (waveCountUI != null && waveCountUI.activeSelf)
-                waveCountUI.SetActive(false);
-
-            if (statusWaveCountUI != null && statusWaveCountUI.activeSelf)
-                statusWaveCountUI.SetActive(false);
-
-            // --- Fade effect (still runs while game is paused) ---
-            if (elapsedTime < duration)
-            {
-                float newAlpha = Mathf.Lerp(startAlpha, targetAlpha, elapsedTime / duration);
-                SetUIAlpha(newAlpha);
-                elapsedTime += Time.unscaledDeltaTime; // ⚡ Use unscaled time so fade continues while paused
-            }
-            else if (!fadeComplete)
-            {
-                fadeComplete = true;
-
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-
-                if (buttonPanel != null)
-                    buttonPanel.SetActive(true);
-            }
-        }
+        // Kept for backwards compatibility with code that sets the flag directly.
+        if (showDeadScreen && !shown) Show();
     }
 
-    void SetUIAlpha(float alpha)
+    public void Show()
     {
-        // Fade image
-        if (targetImage != null)
+        if (shown) return;
+        shown = true;
+        showDeadScreen = true;
+
+        GameState.EndGame();
+
+        if (waveCountUI != null) waveCountUI.SetActive(false);
+        if (statusWaveCountUI != null) statusWaveCountUI.SetActive(false);
+
+        if (showStats && targetText != null)
         {
-            Color imgColor = targetImage.color;
-            imgColor.a = alpha;
-            targetImage.color = imgColor;
+            string baseText = string.IsNullOrWhiteSpace(targetText.text) ? "YOU DIED" : targetText.text;
+            targetText.text = $"{baseText}\n<size={Mathf.RoundToInt(targetText.fontSize * 0.26f)}><color=#B9B3A6>WAVE {Mathf.Max(1, GameState.WaveReached)}    ·    KILLS {GameState.Kills}    ·    HEADSHOTS {GameState.Headshots}    ·    SCORE {GameState.Score}</color></size>";
+            targetText.alignment = TextAnchor.LowerCenter; // grow upward so the stats never cover the buttons
+            targetText.supportRichText = true;
+            targetText.verticalOverflow = VerticalWrapMode.Overflow;   // the stats line was clipped by the text box
+            targetText.horizontalOverflow = HorizontalWrapMode.Overflow;
         }
 
-        // Fade text
-        if (targetText != null)
-        {
-            Color txtColor = targetText.color;
-            txtColor.a = alpha;
-            targetText.color = txtColor;
-        }
+        StartCoroutine(FadeIn());
+        StartCoroutine(FadeOutAllAudio(1.5f));
     }
 
-    // 🧩 Smoothly fade out all audio (using unscaled time)
-    IEnumerator FadeOutAllAudio(float duration)
+    private IEnumerator FadeIn()
     {
-        isFadingAudio = true;
-
-        float startVolume = AudioListener.volume;
-
-        while (AudioListener.volume > 0f)
+        float elapsed = 0f;
+        while (elapsed < duration)
         {
-            AudioListener.volume -= startVolume * (Time.unscaledDeltaTime / duration);
+            SetUIAlpha(Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration));
+            elapsed += Time.unscaledDeltaTime; // runs while the game is frozen
             yield return null;
         }
+        SetUIAlpha(targetAlpha);
 
-        AudioListener.volume = 0f;
-        AudioListener.pause = true;
-        isFadingAudio = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        if (buttonPanel != null) buttonPanel.SetActive(true);
     }
 
-    // 🧩 Restore audio when restarting or returning to menu
-    private void RestoreAudio()
+    private void SetUIAlpha(float alpha)
     {
-        AudioListener.pause = false;
-        AudioListener.volume = 1f;
+        if (targetImage != null)
+        {
+            Color c = targetImage.color; c.a = alpha; targetImage.color = c;
+        }
+        if (targetText != null)
+        {
+            Color c = targetText.color; c.a = alpha; targetText.color = c;
+        }
+    }
+
+    private IEnumerator FadeOutAllAudio(float fadeDuration)
+    {
+        float startVolume = AudioListener.volume;
+        float t = 0f;
+        while (t < fadeDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            AudioListener.volume = Mathf.Lerp(startVolume, 0f, t / fadeDuration);
+            yield return null;
+        }
+        AudioListener.volume = 0f;
+        AudioListener.pause = true;
     }
 
     // --- Button Methods ---
     public void ReplayLevel()
     {
-        RestoreAudio();
-        Time.timeScale = 1f;
+        GameState.ResetMatch();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void GoToMainMenu()
     {
-        RestoreAudio();
-        Time.timeScale = 1f;
+        GameState.ResetMatch();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         SceneManager.LoadScene("MainMenu");

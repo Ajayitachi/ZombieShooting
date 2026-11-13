@@ -9,70 +9,52 @@ public class PauseManager : MonoBehaviour
     public Button resumeButton;
     public Button quitButton;
 
-    private bool isPaused = false;
-
-    void Start()
+    private void Start()
     {
-        if (pauseMenu != null)
-            pauseMenu.SetActive(false);
-
-        if (resumeButton != null)
-            resumeButton.onClick.AddListener(ResumeGame);
-
-        if (quitButton != null)
-            quitButton.onClick.AddListener(QuitGame);
+        if (pauseMenu != null) pauseMenu.SetActive(false);
+        if (resumeButton != null) resumeButton.onClick.AddListener(ResumeGame);
+        if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
     }
 
-    void Update()
+    private void Update()
     {
-        // Press Escape to toggle pause
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // Esc must not toggle anything once the death / mission-complete screen is up
+        // (it used to un-freeze the game behind the death screen).
+        if (GameState.IsGameOver) return;
+
+        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
         {
-            if (isPaused)
-                ResumeGame();
-            else
-                PauseGame();
+            if (GameState.IsPaused) ResumeGame();
+            else PauseGame();
         }
+    }
+
+    // Lose focus (alt-tab) → pause automatically.
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus && !GameState.IsGameOver && !GameState.IsPaused && !Application.isEditor)
+            PauseGame();
     }
 
     public void PauseGame()
     {
-        if (pauseMenu != null)
-            pauseMenu.SetActive(true);
-
-        Time.timeScale = 0f;           // Freeze game time
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        isPaused = true;
+        if (GameState.IsGameOver) return;
+        if (pauseMenu != null) pauseMenu.SetActive(true);
+        GameState.SetPaused(true);
     }
 
     public void ResumeGame()
     {
-        if (pauseMenu != null)
-            pauseMenu.SetActive(false);
-
-        Time.timeScale = 1f;           // Resume time
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        isPaused = false;
+        if (GameState.IsGameOver) return;
+        if (pauseMenu != null) pauseMenu.SetActive(false);
+        GameState.SetPaused(false);
     }
 
     public void QuitGame()
     {
-        Debug.Log("Quit Game pressed!");
-
-        // 🔹 1. RESET TIME
-        // You MUST do this, or the Main Menu will be frozen
-        Time.timeScale = 1f;
-
-        // 🔹 2. ENSURE CURSOR IS VISIBLE FOR THE MENU
-        // It's good practice to set this explicitly for the menu scene
+        GameState.ResetMatch();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-
-        // 🔹 3. NOW LOAD THE SCENE
         SceneManager.LoadScene("MainMenu");
     }
 }

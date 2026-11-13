@@ -1,121 +1,55 @@
-*/[Ll]ibrary/
+# Unity project lives in "Zombie shooting/".
+# IMPORTANT: .meta files, Packages/ and ProjectSettings/ MUST be committed —
+# without them every asset gets a new GUID on clone and all scene references break.
 
-*/[Tt]emp/
+# Unity-generated folders (rebuilt automatically)
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Bb]uild/
+**/[Bb]uilds/
+**/[Ll]ogs/
+**/[Uu]ser[Ss]ettings/
+**/[Mm]emoryCaptures/
+**/[Rr]ecordings/
 
-/[Oo]bj/
+# Unity crash-recovery scene copies
+**/Assets/_Recovery/
+**/Assets/_Recovery.meta
 
-/[Bb]uild/
-
-/[Bb]uilds/
-
-/Assets/AssetStoreTools/
-
-/Assets/AddressableAssetsData/
-
-/Assets/StreamingAssets/
-
-/Packages/
-
-/ProjectSettings/ProjectVersion.txt
-
-/ProjectSettings/Packages/
-
-/ProjectSettings/EditorBuildSettings.asset
-
-/ProjectSettings/ProjectSettings.asset
-
-/ProjectSettings/GraphicsSettings.asset
-
-/ProjectSettings/InputManager.asset
-
-/ProjectSettings/NavMeshAreas.asset
-
-/ProjectSettings/TagManager.asset
-
-/ProjectSettings/VFXManager.asset
-
-/ProjectSettings/Physics2DSettings.asset
-
-/ProjectSettings/PhysicsSettings.asset
-
-/ProjectSettings/TimeManager.asset
-
-/ProjectSettings/PresetManager.asset
-
-/ProjectSettings/DynamicsManager.asset
-
-/ProjectSettings/TextAsset/
-
-/ProjectSettings/XRSettings.asset
-
-/ProjectSettings/ClusterInputSettings.asset
-
-/ProjectSettings/EditorSettings.asset
-
-/ProjectSettings/AudioSettings.asset
-
-/ProjectSettings/QualitySettings.asset
-
-/ProjectSettings/NetworkManager.asset
-
-/ProjectSettings/ProjectTemplate.asset
-
-/ProjectSettings/RenderPipeline.asset
-
-/ProjectSettings/UnityConnectSettings.asset
-
-/ProjectSettings/UnityEditorAnalyticsSettings.asset
-
-/ProjectSettings/UnityEditorAnalyticsSettings.asset
-
-/ProjectSettings/UnityAnalyticsSettings.asset
-
-/ProjectSettings/UnityConnectSettings.asset
-
-/ProjectSettings/VulkanSettings.asset
-
-/ProjectSettings/PackageManagerSettings.asset
-
-/ProjectSettings/PackageResolutionSettings.asset
-
-/ProjectSettings/ScriptingDefineSymbols.asset
-
-/ProjectSettings/PostProcessing.asset
-
-
-
-# Visual Studio / Rider
-
+# IDE / generated project files
 .vs/
-
+.vscode/
+.idea/
+.consulo/
 *.csproj
-
-*.sln
-
 *.unityproj
-
+*.sln
+*.slnx
 *.suo
-
+*.tmp
 *.user
-
 *.userprefs
-
 *.pidb
-
 *.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
 
-*.sln.DotSettings.user
+# Build artifacts
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+sysinfo.txt
 
-*.resharper
-
-*.resharper.user
-
-*.asset.meta
-
-*.meta
-
-
-
-# Other
-
-*.DS_Store
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

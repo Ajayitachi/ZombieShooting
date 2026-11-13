@@ -44,6 +44,8 @@ public class MissionManager : MonoBehaviour
     private void OnContinue()
     {
         // Optional: load main menu or next level
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        int next = SceneManager.GetActiveScene().buildIndex + 1;
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(next < SceneManager.sceneCountInBuildSettings ? next : 0); // wrap to menu instead of crashing
     }
 }

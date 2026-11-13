@@ -10,13 +10,19 @@ public class ZombieAI : MonoBehaviour
     private PlayerController playerController;
     private NavMeshAgent agent;
     private Animator animator;
+    private CapsuleCollider capsule;
 
     [Header("AI Settings")]
     public float detectionRange = 20f;
     public float attackRange = 2f;
     public int attackDamage = 10;
     public float attackCooldown = 1.5f;
+    [Tooltip("Seconds into the attack animation when the hit lands.")]
+    public float attackHitDelay = 0.5f;
+    [Tooltip("Turn speed (degrees/sec) used to face the player while attacking.")]
+    public float turnSpeed = 540f;
     private bool canAttack = true;
+    private bool isAggro;
 
     [Header("Health Settings")]
     public int maxHealth = 100;
@@ -27,116 +33,210 @@ public class ZombieAI : MonoBehaviour
     public float disableDelay = 3f;
 
     [Header("Audio Settings")]
-    public AudioSource zombieSound;   // 🎵 One sound only
+    public AudioSource zombieSound;   // groan loop / one-shot while chasing
 
     private Rigidbody rb;
 
-    private void Start()
+    // Animator parameter hashes (only used if the controller actually has them)
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int DieHash = Animator.StringToHash("Die");
+    private static readonly int HitHash = Animator.StringToHash("Hit");
+    private bool hasSpeed, hasAttack, hasDie, hasHit;
+
+    /// <summary>Raised once when this zombie dies. Bool = killed by a headshot.</summary>
+    public event System.Action<ZombieAI, bool> Died;
+
+    public bool IsDead => isDead;
+    public float HealthPercent => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+    public CapsuleCollider Capsule => capsule;
+
+    private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        capsule = GetComponent<CapsuleCollider>();
         rb = GetComponent<Rigidbody>();
         currentHealth = maxHealth;
 
+        foreach (var p in animator.parameters)
+        {
+            if (p.nameHash == SpeedHash) hasSpeed = true;
+            else if (p.nameHash == AttackHash) hasAttack = true;
+            else if (p.nameHash == DieHash) hasDie = true;
+            else if (p.nameHash == HitHash) hasHit = true;
+        }
+
+        // Agent rotates itself while walking; we rotate manually while attacking.
+        agent.stoppingDistance = Mathf.Max(agent.stoppingDistance, attackRange * 0.8f);
+    }
+
+    private void Start()
+    {
         if (playerTarget == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null)
                 playerTarget = playerObj.transform;
         }
+        SetTarget(playerTarget);
 
-        if (playerTarget != null)
-            playerController = playerTarget.GetComponent<PlayerController>();
-
-        if (playerController == null)
-            Debug.LogError($"{gameObject.name} could not find the PlayerController!");
-
-        // 👇 Ensure AudioSource exists
         if (zombieSound == null)
         {
             zombieSound = GetComponent<AudioSource>();
             if (zombieSound == null)
                 zombieSound = gameObject.AddComponent<AudioSource>();
         }
+        zombieSound.spatialBlend = 1f;               // 3D sound so you can hear where they come from
+        zombieSound.rolloffMode = AudioRolloffMode.Linear;
+        zombieSound.maxDistance = Mathf.Max(zombieSound.maxDistance, 30f);
+        zombieSound.pitch = Random.Range(0.85f, 1.15f); // variety between zombies
+
+        // Snap onto the NavMesh if we spawned slightly off it.
+        if (!agent.isOnNavMesh && NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 4f, NavMesh.AllAreas))
+            agent.Warp(hit.position);
+    }
+
+    /// <summary>Assigns the target to chase (used by the wave spawner).</summary>
+    public void SetTarget(Transform target)
+    {
+        playerTarget = target;
+        playerController = target != null ? target.GetComponentInParent<PlayerController>() : null;
+        if (target != null && playerController == null)
+            Debug.LogWarning($"{name}: target has no PlayerController, zombie can't deal damage.");
+    }
+
+    /// <summary>Multiplies max (and current) health — used for wave difficulty scaling.</summary>
+    public void ScaleHealth(float multiplier)
+    {
+        maxHealth = Mathf.Max(1, Mathf.RoundToInt(maxHealth * multiplier));
+        currentHealth = maxHealth;
     }
 
     private void Update()
     {
-        if (isDead || playerTarget == null) return;
+        if (isDead || playerTarget == null || !agent.enabled || !agent.isOnNavMesh) return;
 
-        float speed = agent.velocity.magnitude;
-        float normalizedSpeed = speed / agent.speed;
-        animator.SetFloat("Speed", normalizedSpeed);
+        if (hasSpeed)
+        {
+            float normalizedSpeed = agent.speed > 0f ? agent.velocity.magnitude / agent.speed : 0f;
+            animator.SetFloat(SpeedHash, normalizedSpeed, 0.1f, Time.deltaTime);
+        }
 
-        float distance = Vector3.Distance(transform.position, playerTarget.position);
-
-        if (distance <= attackRange && canAttack)
+        if (playerController != null && playerController.IsDead)
         {
             agent.isStopped = true;
-            StartCoroutine(AttackPlayer());
+            return;
         }
-        else if (distance <= detectionRange && distance > attackRange)
+
+        float distance = FlatDistance(transform.position, playerTarget.position);
+
+        if (distance <= attackRange)
         {
+            agent.isStopped = true;
+            FacePlayer();
+            if (canAttack) StartCoroutine(AttackPlayer());
+        }
+        else if (isAggro || distance <= detectionRange)
+        {
+            isAggro = true; // once a zombie has seen you it keeps hunting
             agent.isStopped = false;
             agent.SetDestination(playerTarget.position);
 
-            // 🎵 Play zombie sound once when chasing
-            if (!zombieSound.isPlaying)
+            if (!zombieSound.isPlaying && zombieSound.clip != null)
                 zombieSound.Play();
         }
-        else if (distance > detectionRange)
+        else
         {
             agent.isStopped = true;
         }
+    }
+
+    private void FacePlayer()
+    {
+        Vector3 dir = playerTarget.position - transform.position;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.001f) return;
+        Quaternion look = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+    }
+
+    private static float FlatDistance(Vector3 a, Vector3 b)
+    {
+        a.y = 0f; b.y = 0f;
+        return Vector3.Distance(a, b);
     }
 
     private IEnumerator AttackPlayer()
     {
         canAttack = false;
-        animator.SetTrigger("Attack");
-        transform.LookAt(playerTarget.position);
-        yield return new WaitForSeconds(0.5f);
+        if (hasAttack) animator.SetTrigger(AttackHash);
 
-        if (playerController != null && !isDead)
+        yield return new WaitForSeconds(attackHitDelay);
+
+        if (!isDead && playerController != null && !playerController.IsDead &&
+            FlatDistance(transform.position, playerTarget.position) <= attackRange + 0.5f)
         {
-            float distance = Vector3.Distance(transform.position, playerTarget.position);
-            if (distance <= attackRange)
-                playerController.TakeDamage(attackDamage);
+            playerController.TakeDamage(attackDamage, transform.position);
         }
 
-        yield return new WaitForSeconds(attackCooldown - 0.5f);
+        yield return new WaitForSeconds(Mathf.Max(0f, attackCooldown - attackHitDelay));
         canAttack = true;
     }
 
-    public void TakeDamage(int damageAmount)
+    public void TakeDamage(int damageAmount) => TakeDamage(damageAmount, false);
+
+    public void TakeDamage(int damageAmount, bool headshot)
     {
         if (isDead) return;
         currentHealth -= damageAmount;
+        isAggro = true; // getting shot always makes the zombie chase you
 
         if (currentHealth <= 0)
         {
             currentHealth = 0;
-            StartCoroutine(Die());
+            GameState.RegisterHit(true);
+            StartCoroutine(Die(headshot));
+        }
+        else
+        {
+            GameState.RegisterHit(false);
+            if (hasHit) animator.SetTrigger(HitHash);
+            StartCoroutine(Stagger());
         }
     }
 
-    private IEnumerator Die()
+    // Brief slow-down when shot so hits feel like they land.
+    private IEnumerator Stagger()
     {
-        isDead = true;
-        animator.SetTrigger("Die");
-        agent.isStopped = true;
+        if (!agent.enabled) yield break;
+        float original = agent.speed;
+        agent.speed = original * 0.35f;
+        yield return new WaitForSeconds(0.25f);
+        if (!isDead && agent.enabled) agent.speed = original;
+    }
+
+    private IEnumerator Die(bool headshot)
+    {
+        isDead = true; // AttackPlayer checks this flag, so no damage lands after death
+        if (hasDie) animator.SetTrigger(DieHash);
+        if (zombieSound != null) zombieSound.Stop();
+
+        if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
         agent.enabled = false;
 
-        CapsuleCollider col = GetComponent<CapsuleCollider>();
-        if (col) col.enabled = false;
+        if (capsule) capsule.enabled = false;
 
         if (rb != null)
         {
-            rb.linearVelocity = Vector3.zero;
+            if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
             rb.isKinematic = true;
         }
 
+        GameState.RegisterKill(headshot);
+        Died?.Invoke(this, headshot);
+
         yield return new WaitForSeconds(disableDelay);
-        gameObject.SetActive(false);
+        Destroy(gameObject);
     }
 }

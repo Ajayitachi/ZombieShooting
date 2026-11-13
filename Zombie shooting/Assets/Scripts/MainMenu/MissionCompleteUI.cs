@@ -9,43 +9,36 @@ public class MissionCompleteUI : MonoBehaviour
 
     private bool isShowing = false;
 
-    void Start()
+    private void Start()
     {
-        // Make sure it's hidden at the start
         if (missionCompletePanel != null)
             missionCompletePanel.SetActive(false);
     }
 
-    // ✅ Called by ZombieWaveSpawner when mission ends
+    // Called by ZombieWaveSpawner when the last wave is cleared
     public void ShowMissionComplete()
     {
         if (isShowing) return;
         isShowing = true;
 
+        GameState.EndGame();
         if (missionCompletePanel != null)
-        {
-            // Instantly show the panel
             missionCompletePanel.SetActive(true);
-
-            // Pause the game
-            Time.timeScale = 0f;
-
-            // Unlock and show cursor for button click
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
     }
 
-    // ✅ Continue button → goes back to Main Menu
+    // Continue button → back to Main Menu
     public void OnContinueButton()
     {
-        // Resume time before loading menu
-        Time.timeScale = 1f;
-
+        GameState.ResetMatch();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-
-        // Load Main Menu (make sure this scene exists in Build Settings)
         SceneManager.LoadScene("MainMenu");
+    }
+
+    // Optional "Play Again" button
+    public void OnReplayButton()
+    {
+        GameState.ResetMatch();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
